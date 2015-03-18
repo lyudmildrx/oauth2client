@@ -1873,7 +1873,8 @@ class OAuth2WebServerFlow(Flow):
       raise OAuth2DeviceCodeError(error_msg)
 
   @util.positional(2)
-  def step2_exchange(self, code=None, http=None, device_flow_info=None):
+  def step2_exchange(self, code=None, http=None, device_flow_info=None,
+                     exclude_redirect_url=False):
     """Exchanges a code for OAuth2Credentials.
 
     Args:
@@ -1886,6 +1887,9 @@ class OAuth2WebServerFlow(Flow):
           credentials.
       device_flow_info: DeviceFlowInfo, return value from step1 in the
           case of a device flow.
+      exclude_redirect_url(or my_awesome_flow :) ): Bool, if True redirect_url
+          would not be included with the post_data. Can not be used with
+          device_flow_info.
 
     Returns:
       An OAuth2Credentials object that can be used to authorize requests.
@@ -1901,6 +1905,8 @@ class OAuth2WebServerFlow(Flow):
       raise ValueError('No code or device_flow_info provided.')
     if code is not None and device_flow_info is not None:
       raise ValueError('Cannot provide both code and device_flow_info.')
+    if exclude_redirect_url and device_flow_info is not None:
+      raise ValueError('No device_flow_info for my_awesome_flow.')
 
     if code is None:
       code = device_flow_info.device_code
@@ -1920,7 +1926,8 @@ class OAuth2WebServerFlow(Flow):
       post_data['grant_type'] = 'http://oauth.net/grant_type/device/1.0'
     else:
       post_data['grant_type'] = 'authorization_code'
-      post_data['redirect_uri'] = self.redirect_uri
+      if not exclude_redirect_url:
+          post_data['redirect_uri'] = self.redirect_uri
     body = urllib.parse.urlencode(post_data)
     headers = {
         'content-type': 'application/x-www-form-urlencoded',
